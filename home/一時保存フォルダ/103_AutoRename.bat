@@ -1,7 +1,7 @@
 @echo off
 setlocal
 
-REM 名称監視スクリプト
+REM 自動リネーム監視スクリプトを非表示で起動
 set "TARGET=%~dp0\400_RenameWatcher.ps1"
 
-powershell -ExecutionPolicy Bypass -File %TARGET%
+powershell -NoProfile -Sta -ExecutionPolicy Bypass -WindowStyle Hidden -File "%TARGET%"
