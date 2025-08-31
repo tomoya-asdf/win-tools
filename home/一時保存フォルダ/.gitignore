@@ -1,0 +1,12 @@
+# Ignore all user-saved files/folders in this temp folder
+*
+
+# Keep these repo-managed files
+!.gitignore
+!101_CopyToFolder.bat
+!102_ClearCopiedItems.bat
+!103_AutoRename.bat
+!400_RenameWatcher.ps1
+!998_右クリックメニューを追加.bat
+!999_右クリックメニューを削除.bat
+

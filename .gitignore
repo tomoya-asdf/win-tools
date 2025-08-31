@@ -1,0 +1,51 @@
+# --- OS junk (Windows/macOS) ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+System Volume Information/
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# --- Office temporary files ---
+~$*
+
+# --- Logs and temp files ---
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+
+# --- Editor/IDE metadata ---
+.vscode/
+.vscode-test/
+.idea/
+.history/
+*.code-workspace
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# --- PowerShell artifacts ---
+PowerShell_transcript*
+
+# --- Archives ---
+*.zip
+*.7z
+*.rar
+*.tar
+*.gz
+
+# --- Windows shortcuts ---
+*.lnk
+
+# --- Local backups (if accidentally created under repo) ---
+win-tools_backup/
+
