@@ -1,4 +1,4 @@
-<#
+﻿<#
 .
 .SYNOPSIS
 Creates links from the repo's `home` items into the user's profile.

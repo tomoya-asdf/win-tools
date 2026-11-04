@@ -1,4 +1,4 @@
-<#
+ï»¿<#
 .
 .SYNOPSIS
 Installs this repo into a Windows user environment.
@@ -11,7 +11,10 @@ Installs this repo into a Windows user environment.
 Create links from `home` into $env:USERPROFILE (default: on).
 
 .PARAMETER RegisterContextMenu
-Registers the right-click menu by running the provided batch with elevation.
+Registers the temporary-save right-click menu for the current user.
+
+.PARAMETER TemporaryFolderPath
+Folder used by the temporary-save menu (default: TargetRoot/ä¸€æ™‚ä¿å­˜ãƒ•ã‚©ãƒ«ãƒ€).
 
 .PARAMETER SourceRoot
 Path to the `home` folder (default: repo/home).
@@ -31,7 +34,7 @@ If provided with -Overwrite, existing items are moved here with timestamp.
 .EXAMPLE
 ./Install-WinTools.ps1 -Overwrite -BackupRoot "$env:USERPROFILE\\win-tools_backup"
 #>
-[CmdletBinding()]
+[CmdletBinding(SupportsShouldProcess=$true)]
 param(
   [switch]$MakeLinks = $true,
   [switch]$RegisterContextMenu,
@@ -39,7 +42,8 @@ param(
   [string]$SourceRoot,
   [string]$TargetRoot = $env:USERPROFILE,
   [switch]$Overwrite,
-  [string]$BackupRoot
+  [string]$BackupRoot,
+  [string]$TemporaryFolderPath = (Join-Path $TargetRoot 'ä¸€æ™‚ä¿å­˜ãƒ•ã‚©ãƒ«ãƒ€')
 )
 
 $scriptDir = Split-Path -Parent $PSCommandPath
@@ -57,21 +61,11 @@ if ($MakeLinks) {
 }
 
 if ($RegisterContextMenu) {
-  $cmBatch = Join-Path $SourceRoot 'ˆê•Û‘¶ƒtƒHƒ‹ƒ_' | Join-Path -ChildPath '998_‰EƒNƒŠƒbƒNƒƒjƒ…[‚ğ’Ç‰Á.bat'
-  if (-not (Test-Path -LiteralPath $cmBatch)) {
-    Write-Warning "Context menu batch not found: $cmBatch"
-  } else {
-    Write-Host "Requesting elevation to register right-click menu..."
-    try {
-      Start-Process -FilePath 'cmd.exe' -ArgumentList @('/c', '"' + $cmBatch + '"') -Verb RunAs -Wait
-    } catch {
-      Write-Warning "Failed to run elevated context menu installer: $($_.Exception.Message)"
-    }
-  }
+  & (Join-Path $scriptDir 'Register-TemporarySaveMenu.ps1') -FolderPath $TemporaryFolderPath
 }
 
 if ($RegisterExcelReadOnly) {
-  # Adds "Excel(“Ç‚İæ‚èê—p)‚ÅŠJ‚­" to right-click menu for Excel-related extensions under HKCU.
+  # Adds "Excel(èª­ã¿å–ã‚Šå°‚ç”¨)ã§é–‹ã" to right-click menu for Excel-related extensions under HKCU.
   # No elevation required.
 
   function Get-ExcelExecutablePath {
@@ -112,11 +106,12 @@ if ($RegisterExcelReadOnly) {
   foreach ($ext in $extensions) {
     try {
       $baseKey = "HKCU:\\Software\\Classes\\SystemFileAssociations\\$ext\\shell\\OpenReadOnly"
+      if (-not $PSCmdlet.ShouldProcess($baseKey, 'Register Excel read-only context menu')) { continue }
       New-Item -Path $baseKey -Force | Out-Null
       New-Item -Path (Join-Path $baseKey 'command') -Force | Out-Null
 
       # Display name
-      Set-Item -LiteralPath $baseKey -Value 'Excel(“Ç‚İæ‚èê—p)‚ÅŠJ‚­'
+      Set-Item -LiteralPath $baseKey -Value 'Excel(èª­ã¿å–ã‚Šå°‚ç”¨)ã§é–‹ã'
       # Icon for the menu
       New-ItemProperty -LiteralPath $baseKey -Name 'Icon' -Value $iconValue -PropertyType String -Force | Out-Null
 
