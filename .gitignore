@@ -49,3 +49,51 @@ PowerShell_transcript*
 # --- Local backups (if accidentally created under repo) ---
 win-tools_backup/
 
+# --- Event exports and diagnostic dumps (may contain usernames and paths) ---
+*.csv
+*.tsv
+*.evtx
+*.etl
+*.dmp
+*.mdmp
+*.events.json
+*.activity.json
+TestResults*.xml
+coverage*.xml
+
+# --- Work documents accidentally saved alongside tools ---
+*.xlsx
+*.xlsm
+*.xlsb
+*.xls
+*.docx
+*.doc
+*.pptx
+*.ppt
+*.pdf
+
+# --- Local output and private configuration ---
+/exports/
+/reports/
+/output/
+/artifacts/
+/data/
+/local/
+/secrets/
+*.local.*
+.env
+.env.*
+*.secrets.*
+*.credentials.*
+*.pem
+*.key
+*.pfx
+*.p12
+/.aws/
+/.azure/
+/.ssh/
+/.gnupg/
+/.kube/
+/.codex/
+/.agents/
+
