@@ -1,6 +1,6 @@
 ﻿$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $toolRoot = Join-Path $repoRoot 'tools\temporary-save'
-$copyScript = Join-Path $toolRoot 'Copy-ToTemporaryFolder.ps1'
+$copyScript = Join-Path $toolRoot 'Copy-TemporaryItem.ps1'
 $clearScript = Join-Path $toolRoot 'Clear-TemporaryFolder.ps1'
 $watchScript = Join-Path $toolRoot 'Start-TemporaryFolderWatcher.ps1'
 $registerScript = Join-Path $repoRoot 'setup\Register-TemporarySaveMenu.ps1'
@@ -145,7 +145,7 @@ Describe 'Temporary save menu registration' {
     & $registerScript -FolderPath $folder
     Assert-MockCalled Set-Item -Times 2 -Exactly -Scope It -ParameterFilter {
       $LiteralPath -like '*\command' -and
-      $Value.Contains('tools\temporary-save\Copy-ToTemporaryFolder.ps1') -and
+      $Value.Contains('tools\temporary-save\Copy-TemporaryItem.ps1') -and
       $Value.Contains('-LiteralPath "%1"') -and
       $Value.Contains('-FolderPath "' + $folder + '"')
     }

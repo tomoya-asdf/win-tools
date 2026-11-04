@@ -1,3 +1,0 @@
-# Data only: keep user-saved files out of Git.
-*
-!.gitignore

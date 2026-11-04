@@ -5,7 +5,7 @@
     @{ Name = 'フォルダ比較'; Kind = 'FolderCompare'; Path = 'tools\files\Compare-Folders.ps1' },
     @{ Name = '業務イベントログ'; Kind = 'WorkLogs'; Path = 'tools\logs\Get-WorkEventLog.ps1' },
     @{ Name = 'フォルダ操作履歴（管理者）'; Kind = 'FolderLogs'; Path = 'tools\logs\Get-RecentFolderActivity.ps1' },
-    @{ Name = '一時保存へコピー'; Kind = 'TemporaryCopy'; Path = 'tools\temporary-save\Copy-ToTemporaryFolder.ps1' },
+    @{ Name = '一時保存へコピー'; Kind = 'TemporaryCopy'; Path = 'tools\temporary-save\Copy-TemporaryItem.ps1' },
     @{ Name = '一時保存のコピー品を削除'; Kind = 'TemporaryClear'; Path = 'tools\temporary-save\Clear-TemporaryFolder.ps1' },
     @{ Name = '一時保存の自動リネーム監視を起動'; Kind = 'TemporaryWatch'; Path = 'tools\temporary-save\Start-TemporaryFolderWatcher.ps1' }
   )

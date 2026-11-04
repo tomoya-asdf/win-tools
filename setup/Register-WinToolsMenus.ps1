@@ -1,65 +1,29 @@
 ﻿<#
-.
 .SYNOPSIS
-Installs this repo into a Windows user environment.
-
+現在のユーザーへ一時保存・Excel読み取り専用の右クリックメニューを登録します。
 .DESCRIPTION
-- Creates links from `home` to the user's profile (junctions/symlinks).
-- Optionally registers the context menu for the temporary-save feature.
-
-.PARAMETER MakeLinks
-Create links from `home` into $env:USERPROFILE (default: on).
-
+登録するメニューをオプションで指定します。引数なしの場合は使い方を表示します。
 .PARAMETER RegisterContextMenu
-Registers the temporary-save right-click menu for the current user.
-
+一時保存のメニューを登録します。
+.PARAMETER RegisterExcelReadOnly
+Excelを読み取り専用で開くメニューを登録します。
 .PARAMETER TemporaryFolderPath
-Folder used by the temporary-save menu (default: TargetRoot/一時保存フォルダ).
-
-.PARAMETER SourceRoot
-Path to the `home` folder (default: repo/home).
-
-.PARAMETER TargetRoot
-Destination root (default: $env:USERPROFILE).
-
-.PARAMETER Overwrite
-Overwrite existing items at the destination (can use -BackupRoot to move them).
-
-.PARAMETER BackupRoot
-If provided with -Overwrite, existing items are moved here with timestamp.
-
+一時保存先。既定はユーザープロファイル直下の一時保存フォルダです。
 .EXAMPLE
-./Install-WinTools.ps1 -RegisterContextMenu -Verbose
-
-.EXAMPLE
-./Install-WinTools.ps1 -Overwrite -BackupRoot "$env:USERPROFILE\\win-tools_backup"
+.\setup\Register-WinToolsMenus.ps1 -RegisterContextMenu -RegisterExcelReadOnly -WhatIf
 #>
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(
-  [switch]$MakeLinks = $true,
   [switch]$RegisterContextMenu,
   [switch]$RegisterExcelReadOnly,
-  [string]$SourceRoot,
-  [string]$TargetRoot = $env:USERPROFILE,
-  [switch]$Overwrite,
-  [string]$BackupRoot,
-  [string]$TemporaryFolderPath = (Join-Path $TargetRoot '一時保存フォルダ')
+  [string]$TemporaryFolderPath = (Join-Path $env:USERPROFILE '一時保存フォルダ')
 )
 
+if (-not $RegisterContextMenu -and -not $RegisterExcelReadOnly) {
+  Write-Host '登録するメニューを -RegisterContextMenu / -RegisterExcelReadOnly で指定してください。'
+  return
+}
 $scriptDir = Split-Path -Parent $PSCommandPath
-$repoRoot  = Split-Path -Parent $scriptDir
-if (-not $SourceRoot) { $SourceRoot = Join-Path $repoRoot 'home' }
-
-# Ensure linking script is available
-$linkScript = Join-Path $scriptDir 'New-HomeLinks.ps1'
-if (-not (Test-Path -LiteralPath $linkScript)) {
-  throw "Missing script: $linkScript"
-}
-
-if ($MakeLinks) {
-  & $linkScript -SourceRoot $SourceRoot -TargetRoot $TargetRoot -Overwrite:$Overwrite -BackupRoot $BackupRoot -Verbose:$VerbosePreference
-}
-
 if ($RegisterContextMenu) {
   & (Join-Path $scriptDir 'Register-TemporarySaveMenu.ps1') -FolderPath $TemporaryFolderPath
 }
@@ -132,4 +96,4 @@ if ($RegisterExcelReadOnly) {
   }
 }
 
-Write-Host "Install complete."
+Write-Verbose 'メニュー登録の処理を終了しました。'

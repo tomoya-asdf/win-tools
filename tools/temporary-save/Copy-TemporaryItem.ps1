@@ -2,7 +2,7 @@
 .SYNOPSIS
 ファイルやフォルダを、日付付きの名前で一時保存先にコピーします。
 .EXAMPLE
-.\tools\temporary-save\Copy-ToTemporaryFolder.ps1 -LiteralPath 'C:\Work\案件.xlsx'
+.\tools\temporary-save\Copy-TemporaryItem.ps1 -LiteralPath 'C:\Work\案件.xlsx'
 #>
 [CmdletBinding(SupportsShouldProcess=$true)]
 param(

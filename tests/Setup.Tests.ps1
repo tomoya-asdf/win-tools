@@ -1,27 +1,49 @@
 ﻿$repoRoot = Split-Path -Parent $PSScriptRoot
-$linkScript = Join-Path $repoRoot 'setup\New-HomeLinks.ps1'
-$installScript = Join-Path $repoRoot 'setup\Install-WinTools.ps1'
+$registerScript = Join-Path $repoRoot 'setup\Register-WinToolsMenus.ps1'
 
-Describe 'Setup entry points after directory reorganization' {
-  It 'resolves the bundled home directory in a dry run without creating links' {
-    Mock New-Item { throw 'A dry run must not create anything.' }
-    & $linkScript -TargetRoot $TestDrive -WhatIf
-    @(Get-ChildItem -LiteralPath $TestDrive -Force).Count | Should Be 0
+Describe 'Optional menu registration without home deployment' {
+  It 'does not change the environment when no menu is selected' {
+    Mock New-Item {}
+    Mock Set-Item {}
+    Mock Start-Process {}
+    & $registerScript
     Assert-MockCalled New-Item -Times 0 -Exactly -Scope It
-  }
-  It 'finds the sibling link script without changing the user environment' {
-    Mock Start-Process { throw 'No registration was requested.' }
-    & $installScript -MakeLinks:$false
+    Assert-MockCalled Set-Item -Times 0 -Exactly -Scope It
     Assert-MockCalled Start-Process -Times 0 -Exactly -Scope It
   }
-  It 'delegates menu registration to setup without elevation' {
+  It 'registers the renamed copy tool with an explicit data folder' {
     Mock New-Item {}
     Mock Set-Item {}
     Mock Start-Process { throw 'Elevation is unnecessary.' }
-    & $installScript -MakeLinks:$false -RegisterContextMenu -TemporaryFolderPath (Join-Path $TestDrive 'saved')
+    & $registerScript -RegisterContextMenu -TemporaryFolderPath (Join-Path $TestDrive 'saved')
     Assert-MockCalled Set-Item -Times 2 -Exactly -Scope It -ParameterFilter {
-      $LiteralPath -like '*\command' -and $Value.Contains('Copy-ToTemporaryFolder.ps1')
+      $LiteralPath -like '*\command' -and $Value.Contains('Copy-TemporaryItem.ps1')
     }
+    Assert-MockCalled New-Item -Times 2 -Exactly -Scope It -ParameterFilter { $Path -like 'HKCU:*' }
     Assert-MockCalled Start-Process -Times 0 -Exactly -Scope It
+  }
+  It 'still registers Excel read-only entries without creating data directories' {
+    Mock New-Item {}
+    Mock Set-Item {}
+    Mock New-ItemProperty {}
+    Mock Get-ItemProperty { [pscustomobject]@{ '(default)' = 'C:\Test\EXCEL.EXE' } }
+    Mock Test-Path { $true } -ParameterFilter { $LiteralPath -eq 'C:\Test\EXCEL.EXE' }
+    & $registerScript -RegisterExcelReadOnly
+    Assert-MockCalled Set-Item -Times 5 -Exactly -Scope It -ParameterFilter {
+      $LiteralPath -like '*\command' -and $Value.Contains('C:\Test\EXCEL.EXE') -and $Value.Contains('/r "%1"')
+    }
+    Assert-MockCalled New-Item -Times 10 -Exactly -Scope It -ParameterFilter { $Path -like 'HKCU:*' }
+    Assert-MockCalled New-Item -Times 0 -Exactly -Scope It -ParameterFilter { $ItemType -eq 'Directory' }
+  }
+  It 'does not write either menu during a dry run' {
+    Mock New-Item {}
+    Mock Set-Item {}
+    Mock New-ItemProperty {}
+    Mock Get-ItemProperty { [pscustomobject]@{ '(default)' = 'C:\Test\EXCEL.EXE' } }
+    Mock Test-Path { $true } -ParameterFilter { $LiteralPath -eq 'C:\Test\EXCEL.EXE' }
+    & $registerScript -RegisterContextMenu -RegisterExcelReadOnly -WhatIf
+    Assert-MockCalled New-Item -Times 0 -Exactly -Scope It
+    Assert-MockCalled Set-Item -Times 0 -Exactly -Scope It
+    Assert-MockCalled New-ItemProperty -Times 0 -Exactly -Scope It
   }
 }

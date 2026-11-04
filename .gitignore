@@ -80,6 +80,8 @@ coverage*.xml
 /output/
 /artifacts/
 /data/
+# Legacy saved data must stay private if an old local checkout recreates home.
+/home/
 /local/
 /secrets/
 *.local.*

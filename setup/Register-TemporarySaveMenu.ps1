@@ -9,7 +9,7 @@ param([string]$FolderPath = (Join-Path $env:USERPROFILE '一時保存フォル�
 $toolRoot = Join-Path (Split-Path -Parent $PSScriptRoot) 'tools\temporary-save'
 Import-Module (Join-Path $toolRoot 'lib\TemporarySave.psm1') -Force
 $folder = Get-TemporaryFolderPath -FolderPath $FolderPath
-$copyScript = Join-Path $toolRoot 'Copy-ToTemporaryFolder.ps1'
+$copyScript = Join-Path $toolRoot 'Copy-TemporaryItem.ps1'
 if (-not (Test-Path -LiteralPath $copyScript -PathType Leaf)) { throw "コピー用スクリプトがありません: $copyScript" }
 $powershell = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
 $command = '"{0}" -NoProfile -ExecutionPolicy Bypass -File "{1}" -LiteralPath "%1" -FolderPath "{2}" -Open' -f $powershell, $copyScript, $folder
