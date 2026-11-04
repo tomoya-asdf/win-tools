@@ -66,6 +66,8 @@ coverage*.xml
 *.xlsm
 *.xlsb
 *.xls
+*.xlam
+*.xltm
 *.docx
 *.doc
 *.pptx

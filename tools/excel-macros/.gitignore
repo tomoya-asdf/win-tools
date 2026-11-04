@@ -1,0 +1,17 @@
+# Reviewed macro tools can be versioned in this folder only.
+!*.xlsm
+!*.xlsb
+!*.xlam
+!*.xltm
+
+# Workbook lock files and work data are never tool entries.
+.*
+!.gitignore
+~$*
+data/
+input/
+output/
+local/
+*.local.*
+*.secrets.*
+*.credentials.*
