@@ -3,3 +3,6 @@
 *.psm1 text eol=crlf
 *.psd1 text eol=crlf
 *.ps1xml text eol=crlf
+# VBA sources are UTF-8 text; the workbook builder reads them as Unicode.
+*.bas text eol=crlf
+*.cls text eol=crlf
