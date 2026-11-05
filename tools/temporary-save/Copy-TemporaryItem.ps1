@@ -23,7 +23,11 @@ if ($PSCmdlet.ShouldProcess($destination, "Copy from '$($source.FullName)'")) {
   New-Item -ItemType Directory -Path $folder -Force -ErrorAction Stop | Out-Null
   Copy-Item -LiteralPath $source.FullName -Destination $destination -Recurse -ErrorAction Stop
   if ($Open) {
-    Start-Process -FilePath explorer.exe -ArgumentList ('/select,"{0}"' -f $destination) -ErrorAction Stop
+    if ($source.PSIsContainer) {
+      Start-Process -FilePath explorer.exe -ArgumentList ('"{0}"' -f $destination) -ErrorAction Stop
+    } else {
+      Start-Process -FilePath $destination -ErrorAction Stop
+    }
   }
   Get-Item -LiteralPath $destination -Force
 }

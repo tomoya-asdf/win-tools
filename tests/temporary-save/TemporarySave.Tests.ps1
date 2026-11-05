@@ -52,6 +52,26 @@ Describe 'Temporary save with an independent data directory' {
   It 'rejects a drive root as a data directory' {
     { Get-TemporaryFolderPath -FolderPath ([IO.Path]::GetPathRoot($TestDrive)) } | Should Throw
   }
+  It 'opens the saved file with its default application after copying' {
+    Mock Start-Process {}
+    $source = Join-Path $TestDrive 'open file [1].txt'
+    [IO.File]::WriteAllText($source, 'open saved copy')
+    $folder = Join-Path $TestDrive 'open-file-target'
+    $copy = & $copyScript -LiteralPath $source -FolderPath $folder -Open
+    Assert-MockCalled Start-Process -Times 1 -Exactly -Scope It -ParameterFilter {
+      $FilePath -eq $copy.FullName -and -not $ArgumentList
+    }
+    [IO.File]::ReadAllText($copy.FullName) | Should Be 'open saved copy'
+  }
+  It 'opens the saved folder itself rather than selecting it in its parent' {
+    Mock Start-Process {}
+    $source = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'open folder [1]')
+    $folder = Join-Path $TestDrive 'open-folder-target'
+    $copy = & $copyScript -LiteralPath $source.FullName -FolderPath $folder -Open
+    Assert-MockCalled Start-Process -Times 1 -Exactly -Scope It -ParameterFilter {
+      $FilePath -eq 'explorer.exe' -and $ArgumentList -eq ('"' + $copy.FullName + '"')
+    }
+  }
   It 'clears only marked direct children and leaves ordinary items untouched' {
     $folder = New-Item -ItemType Directory -Path (Join-Path $TestDrive 'clear')
     $marked = Join-Path $folder.FullName '【一時保存】＜20261104＞copy [1].txt'
