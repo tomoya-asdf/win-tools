@@ -91,8 +91,6 @@ Invoke-Pester ./tests/excel-macros
 ./tests/excel-macros/Test-SheetInventoryExcel.ps1
 ```
 
-旧 `FileInventory.xlsm` は `FileInventory.xltm` に置き換えました。旧ブックへのショートカットは新しいテンプレートへ変更してください。旧 `Build-FileInventoryWorkbook.ps1` は `Build-InventoryTemplates.ps1` に統合しています。
-
 ## 配置と起動
 
 次のようにマクロのファイルを追加します。用途別のサブフォルダも利用できます。

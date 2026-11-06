@@ -8,7 +8,7 @@
 
 コピー先・削除対象・監視先の既定は `%USERPROFILE%\一時保存フォルダ` です。各コマンドの `-FolderPath` で変更できます。コードの場所やカレントディレクトリを変えても、保存先は変わりません。コピー・監視の開始時に保存先がなければ作成します。
 
-保存データはリポジトリ外に置き、コピー・監視の開始時に保存先を作成します。旧セットアップで保存先をJunctionにしていた場合は、[セットアップの移行手順](setup.md#以前の構成からの移行)でリンクを解除して通常の保存先に切り替えてください。
+保存データはリポジトリ外に置きます。旧セットアップのJunctionがある場合は、[移行手順](setup.md#以前の構成からの移行)を確認してください。
 
 ## コピー
 
@@ -72,23 +72,3 @@
 登録・解除とも `-WhatIf` に対応します。登録先は `HKCU\Software\Classes\*\shell\CopyToSelfFolder` と `HKCU\Software\Classes\Directory\shell\CopyToSelfFolder` です。「コピーして開く（一時保存）」から、新しいコピー用PowerShellを実行します。
 
 メニューにはコードと保存先のパスを登録するため、リポジトリや保存先を移動した場合は再登録してください。登録だけでは監視やスタートアップ設定は行いません。まとめてセットアップする方法は[セットアップ](setup.md)を参照してください。
-
-## 以前の構成からの移行
-
-一時保存も他のツールと同じ `動詞-対象` の命名に揃えました。番号付きバッチと、古いコピー用PowerShellへの参照を更新してください。旧 `home/一時保存フォルダ` にあった起動ファイルも、同じ対応表で置き換えます。
-
-| 以前 | 現在（tools/temporary-save/ 内） |
-| --- | --- |
-| `101_CopyToFolder.bat` | `Copy-TemporaryItem.bat` |
-| `Copy-ToTemporaryFolder.ps1` | `Copy-TemporaryItem.ps1` |
-| `102_ClearCopiedItems.bat` | `Clear-TemporaryFolder.bat` |
-| `103_AutoRename.bat` | `Start-TemporaryFolderWatcher.bat` |
-| `400_RenameWatcher.ps1` | `Start-TemporaryFolderWatcher.ps1` |
-
-1. 旧監視が動いていれば、トレイアイコンの `Exit` で終了します。
-2. 旧 `home/` へのJunctionがある場合は、[セットアップの移行手順](setup.md#以前の構成からの移行)に従って保存データを独立させます。
-3. `./setup/Register-TemporarySaveMenu.ps1` を再実行し、コピー用スクリプトの新しいパスをメニューに登録します。任意の保存先は `-FolderPath` で指定します。
-4. 通常のショートカットと `shell:startup` の監視起動用ショートカットを、新しい名前のバッチへ更新します。
-5. 新しい `Start-TemporaryFolderWatcher.bat` または同名のPowerShellで監視を開始します。
-
-旧 `998_右クリックメニューを追加.bat` と `999_右クリックメニューを削除.bat` は、それぞれ `setup/Register-TemporarySaveMenu.ps1` と `setup/Unregister-TemporarySaveMenu.ps1` に置き換え済みです。

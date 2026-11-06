@@ -58,6 +58,7 @@ win-tools_backup/
 *.mdmp
 *.events.json
 *.activity.json
+*.history.jsonl
 TestResults*.xml
 coverage*.xml
 
@@ -75,6 +76,7 @@ coverage*.xml
 *.pdf
 
 # --- Local output and private configuration ---
+/apps/
 /exports/
 /reports/
 /output/

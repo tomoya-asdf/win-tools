@@ -7,16 +7,20 @@ Describe 'Tool menu and automatic Excel discovery' {
     $fixture = Join-Path $TestDrive ([guid]::NewGuid().ToString('N'))
     $macroFolder = New-Item -ItemType Directory -Path (Join-Path $fixture 'tools\excel-macros') -Force
     $global:WinToolsLauncherFixtureState = @{}
+    Mock Clear-Host {}
+    Mock Clear-Host {} -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory {} -ModuleName WinToolsMenu
   }
   AfterEach { Remove-Variable -Name WinToolsLauncherFixtureState -Scope Global -ErrorAction SilentlyContinue }
-  It 'lists six built-in tools without requesting interactive input' {
+  It 'lists seven built-in tools without requesting interactive input or clearing the screen' {
     Mock Read-Host { throw 'Listing must not prompt.' }
     $items = @(& (Join-Path $repoRoot 'Start-WinTools.ps1') -List)
     $builtins = @($items | Where-Object Kind -ne 'ExcelMacro')
-    $builtins.Count | Should Be 6
+    $builtins.Count | Should Be 7
     $builtins[0].Kind | Should Be 'FolderCompare'
-    $builtins[-1].Kind | Should Be 'TemporaryWatch'
+    $builtins[-1].Kind | Should Be 'ExecutionHistory'
     Assert-MockCalled Read-Host -Times 0 -Exactly -Scope It
+    Assert-MockCalled Clear-Host -Times 0 -Exactly -Scope It
   }
   It 'discovers supported workbooks in subfolders and sorts by relative file path' {
     $sub = New-Item -ItemType Directory -Path (Join-Path $macroFolder.FullName '集計')
@@ -123,7 +127,7 @@ param($LeftPath, $RightPath, $CompareBy, [switch]$DifferencesOnly)
   It 'keeps built-in entries available if a macro directory cannot be read' {
     $fileFolder = New-Item -ItemType Directory -Path (Join-Path $fixture 'tools\files') -Force
     [IO.File]::WriteAllText((Join-Path $fileFolder.FullName 'Compare-Folders.ps1'), '# fixture')
-    Mock Get-ChildItem { throw 'Access denied' } -ModuleName WinToolsMenu
+    Mock Get-ChildItem { throw 'Access denied' } -ModuleName WinToolsMenu -ParameterFilter { $LiteralPath -eq $macroFolder.FullName }
     $warnings = @()
     $items = @(Get-WinToolsMenuItem -RepositoryRoot $fixture -WarningVariable warnings -WarningAction SilentlyContinue)
     $items.Count | Should Be 1
@@ -142,6 +146,71 @@ param($LeftPath, $RightPath, $CompareBy, [switch]$DifferencesOnly)
     & (Join-Path $repoRoot 'Start-WinTools.ps1') -WarningVariable warnings -WarningAction SilentlyContinue
     $warnings.Count | Should Be 1
     Assert-MockCalled Read-Host -Times 2 -Exactly -Scope It
+    Assert-MockCalled Clear-Host -Times 2 -Exactly -Scope It
+  }
+  It 'clears the feature list before asking for tool input and logs cancellation' {
+    Mock Clear-Host { $global:WinToolsLauncherFixtureState.Cleared = $true } -ModuleName WinToolsMenu
+    Mock Read-Host {
+      if (-not $global:WinToolsLauncherFixtureState.Cleared) { throw 'Old menu is still visible.' }
+      ''
+    } -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory { $global:WinToolsLauncherFixtureState.Record = $Record } -ModuleName WinToolsMenu
+    Invoke-WinToolsMenuItem -Item ([pscustomobject]@{ Name = '比較'; Kind = 'FolderCompare'; Path = 'unused.ps1' })
+    $global:WinToolsLauncherFixtureState.Record.Status | Should Be 'Cancelled'
+    $global:WinToolsLauncherFixtureState.Record.Name | Should Be '比較'
+  }
+  It 'records a completed command and its elapsed time' {
+    $fakeTool = Join-Path $fixture 'logs.ps1'
+    [IO.File]::WriteAllText($fakeTool, 'param($Category)')
+    Mock Read-Host { '' } -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory { $global:WinToolsLauncherFixtureState.Record = $Record } -ModuleName WinToolsMenu
+    Invoke-WinToolsMenuItem -Item ([pscustomobject]@{ Name = 'ログ'; Kind = 'WorkLogs'; Path = $fakeTool })
+    $record = $global:WinToolsLauncherFixtureState.Record
+    $record.Status | Should Be 'Succeeded'
+    ($record.DurationMs -ge 0) | Should Be $true
+    ([DateTimeOffset]::Parse($record.EndTime) -ge [DateTimeOffset]::Parse($record.StartTime)) | Should Be $true
+  }
+  It 'records nonterminating tool errors as failures and preserves the error' {
+    $fakeTool = Join-Path $fixture 'failed.ps1'
+    [IO.File]::WriteAllText($fakeTool, 'param($Category); Write-Error "fixture failure"')
+    Mock Read-Host { '' } -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory { $global:WinToolsLauncherFixtureState.Record = $Record } -ModuleName WinToolsMenu
+    { Invoke-WinToolsMenuItem -Item ([pscustomobject]@{ Name = 'ログ'; Kind = 'WorkLogs'; Path = $fakeTool }) } | Should Throw 'fixture failure'
+    $global:WinToolsLauncherFixtureState.Record.Status | Should Be 'Failed'
+    $global:WinToolsLauncherFixtureState.Record.Error | Should Be 'fixture failure'
+  }
+  It 'records external Excel launches without claiming the macro finished' {
+    $path = Join-Path $macroFolder.FullName 'test.xlsm'
+    [IO.File]::WriteAllText($path, 'fixture')
+    Mock Start-Process {} -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory { $global:WinToolsLauncherFixtureState.Record = $Record } -ModuleName WinToolsMenu
+    Invoke-WinToolsMenuItem -Item ([pscustomobject]@{ Name = 'Excel'; Kind = 'ExcelMacro'; Path = $path })
+    $global:WinToolsLauncherFixtureState.Record.Status | Should Be 'Launched'
+  }
+  It 'keeps a successful tool usable when history cannot be written' {
+    Mock Read-Host { '' } -ModuleName WinToolsMenu
+    Mock Write-WinToolsHistory { throw 'history unavailable' } -ModuleName WinToolsMenu
+    $warnings = @()
+    Invoke-WinToolsMenuItem -Item ([pscustomobject]@{ Name = '比較'; Kind = 'FolderCompare'; Path = 'unused.ps1' }) -WarningVariable warnings -WarningAction SilentlyContinue
+    $warnings.Count | Should Be 1
+    $warnings[0].ToString() | Should Match 'history unavailable'
+  }
+  It 'pauses on the result before clearing and redisplaying the menu' {
+    $global:WinToolsLauncherFixtureState.MenuPrompts = 0
+    Mock Read-Host {
+      if ($Prompt -eq '番号を入力') {
+        $global:WinToolsLauncherFixtureState.MenuPrompts++
+        if ($global:WinToolsLauncherFixtureState.MenuPrompts -eq 1) { '1' } else { '0' }
+      } else {
+        $global:WinToolsLauncherFixtureState.Paused = $true
+        ''
+      }
+    }
+    Mock Read-Host { '' } -ModuleName WinToolsMenu
+    & (Join-Path $repoRoot 'Start-WinTools.ps1')
+    $global:WinToolsLauncherFixtureState.Paused | Should Be $true
+    Assert-MockCalled Clear-Host -Times 2 -Exactly -Scope It
+    Assert-MockCalled Clear-Host -Times 1 -Exactly -Scope It -ModuleName WinToolsMenu
   }
 }
 

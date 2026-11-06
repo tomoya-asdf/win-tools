@@ -46,4 +46,9 @@ Describe 'Optional menu registration without home deployment' {
     Assert-MockCalled Set-Item -Times 0 -Exactly -Scope It
     Assert-MockCalled New-ItemProperty -Times 0 -Exactly -Scope It
   }
+  It 'does not create a shortcut during a dry run through the combined setup' {
+    Mock New-Object { throw 'A dry run must not instantiate WScript.Shell.' } -ParameterFilter { $ComObject -eq 'WScript.Shell' }
+    & $registerScript -RegisterShortcut -WhatIf
+    Assert-MockCalled New-Object -Times 0 -Exactly -Scope It -ParameterFilter { $ComObject -eq 'WScript.Shell' }
+  }
 }

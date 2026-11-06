@@ -7,6 +7,10 @@
 一時保存のメニューを登録します。
 .PARAMETER RegisterExcelReadOnly
 Excelを読み取り専用で開くメニューを登録します。
+.PARAMETER RegisterShortcut
+現在のユーザーのスタートメニューへ起動ショートカットを登録します。
+.PARAMETER HotKey
+起動キー。既定はCTRL+ALT+Wです。
 .PARAMETER TemporaryFolderPath
 一時保存先。既定はユーザープロファイル直下の一時保存フォルダです。
 .EXAMPLE
@@ -16,14 +20,20 @@ Excelを読み取り専用で開くメニューを登録します。
 param(
   [switch]$RegisterContextMenu,
   [switch]$RegisterExcelReadOnly,
+  [switch]$RegisterShortcut,
+  [ValidatePattern('^(CTRL\+ALT|CTRL\+SHIFT|ALT\+SHIFT)\+[A-Z0-9]$')]
+  [string]$HotKey = 'CTRL+ALT+W',
   [string]$TemporaryFolderPath = (Join-Path $env:USERPROFILE '一時保存フォルダ')
 )
 
-if (-not $RegisterContextMenu -and -not $RegisterExcelReadOnly) {
-  Write-Host '登録するメニューを -RegisterContextMenu / -RegisterExcelReadOnly で指定してください。'
+if (-not $RegisterContextMenu -and -not $RegisterExcelReadOnly -and -not $RegisterShortcut) {
+  Write-Host '登録する項目を -RegisterContextMenu / -RegisterExcelReadOnly / -RegisterShortcut で指定してください。'
   return
 }
 $scriptDir = Split-Path -Parent $PSCommandPath
+if ($RegisterShortcut) {
+  & (Join-Path $scriptDir 'Register-WinToolsShortcut.ps1') -HotKey $HotKey
+}
 if ($RegisterContextMenu) {
   & (Join-Path $scriptDir 'Register-TemporarySaveMenu.ps1') -FolderPath $TemporaryFolderPath
 }
