@@ -76,6 +76,16 @@ Describe 'Tool menu and automatic Excel discovery' {
     { Invoke-WinToolsMenuItem -Item $item } | Should Throw
     Assert-MockCalled Start-Process -Times 0 -Exactly -Scope It -ModuleName WinToolsMenu
   }
+  It 'launches a macro template with the New verb rather than editing its source' {
+    Mock Start-Process {} -ModuleName WinToolsMenu
+    $path = Join-Path $macroFolder.FullName 'template.xltm'
+    [IO.File]::WriteAllText($path, 'fixture only')
+    $item = @(Get-WinToolsMenuItem -RepositoryRoot $fixture)[0]
+    Invoke-WinToolsMenuItem -Item $item
+    Assert-MockCalled Start-Process -Times 1 -Exactly -Scope It -ModuleName WinToolsMenu -ParameterFilter {
+      $FilePath -eq $path -and $Verb -eq 'New'
+    }
+  }
   It 'passes quoted paths as literal parameters and enables the requested hash comparison' {
     $leftInput = (New-Item -ItemType Directory -Path (Join-Path $fixture '左 [1] & folder')).FullName
     $rightInput = (New-Item -ItemType Directory -Path (Join-Path $fixture 'right folder')).FullName

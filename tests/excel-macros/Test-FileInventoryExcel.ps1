@@ -9,7 +9,7 @@
 param()
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$workbookPath = Join-Path $repoRoot 'tools\excel-macros\FileInventory.xlsm'
+$workbookPath = Join-Path $repoRoot 'tools\excel-macros\FileInventory.xltm'
 $fixture = Join-Path ([IO.Path]::GetTempPath()) ('win-tools-inventory-' + [guid]::NewGuid().ToString('N'))
 $excel = $null
 $book = $null
@@ -22,7 +22,7 @@ function Assert-Inventory {
 }
 function Invoke-InventoryCase {
   param([string]$Root, [string]$Extension = '', [string]$FileName = '', [string]$Folder = '', [string]$Exclude = '')
-  return $excel.Run("'FileInventory.xlsm'!FileInventory.BuildFileInventory", $Root, $Extension, $FileName, $Folder, $Exclude)
+  return $excel.Run(($macroPrefix + 'FileInventory.BuildFileInventory'), $Root, $Extension, $FileName, $Folder, $Exclude)
 }
 function Get-InventoryPaths {
   param($Report)
@@ -59,7 +59,8 @@ try {
   $excel.Visible = $false
   $excel.DisplayAlerts = $false
   $excel.EnableEvents = $false
-  $book = $excel.Workbooks.Open($workbookPath, 0, $true)
+  $book = $excel.Workbooks.Add($workbookPath)
+$macroPrefix = "'" + $book.Name.Replace("'", "''") + "'!"
   $source = $book.VBProject.VBComponents.Item($book.CodeName).CodeModule
   Assert-Inventory ($source.Lines(1, $source.CountOfLines).Contains('Private Sub Workbook_Open()')) 'Workbook open event is missing.'
   Assert-Inventory ($source.Lines(1, $source.CountOfLines).Contains('FileInventory.StartFileInventory')) 'Workbook open event is not wired to the picker.'
@@ -91,7 +92,7 @@ try {
   $invalid = Invoke-InventoryCase $root '['
   Assert-Inventory ($null -eq $invalid) 'An invalid regex should not create a report.'
   Assert-Inventory ($excel.Workbooks.Count -eq $count) 'An invalid regex left an extra workbook open.'
-  Assert-Inventory ($excel.Run("'FileInventory.xlsm'!FileInventory.LastInventoryError").Contains('拡張子')) 'The invalid regex was not explained.'
+  Assert-Inventory ($excel.Run(($macroPrefix + 'FileInventory.LastInventoryError')).Contains('拡張子')) 'The invalid regex was not explained.'
   Write-Output 'PASS: invalid regex is handled without a modal error'; $passed++
   $invalid = Invoke-InventoryCase (Join-Path $root 'missing')
   Assert-Inventory ($null -eq $invalid) 'A missing root should not create a report.'
@@ -109,9 +110,28 @@ try {
   Assert-Inventory ($null -eq $book.Worksheets.Item('設定').Range('B4').Value2) 'Test search criteria leaked into the template.'
   Assert-Inventory ($beforeHash -eq (Get-FileHash -LiteralPath $workbookPath -Algorithm SHA256).Hash) 'The distributed workbook was changed by testing.'
   Write-Output 'PASS: tool template and application event state preserved'; $passed++
+  Assert-Inventory ($excel.Run($macroPrefix + 'InventoryCommon.LastProgressPercent') -eq 100) 'Final percentage was not 100.'
+  $excel.Run($macroPrefix + 'InventoryCommon.ShowProgress', 1, 4, 'fixture-progress') | Out-Null
+  Assert-Inventory ($excel.StatusBar.Contains('25% (1/4)')) 'Intermediate progress did not show the expected percentage.'
+  Write-Output 'PASS: intermediate and final percentages'; $passed++
+  $excel.EnableEvents = $true
+  $blockedPath = Join-Path $fixture 'must-not-save.xlsm'
+  try { $book.SaveAs($blockedPath, 52) } catch { }
+  Assert-Inventory (-not (Test-Path -LiteralPath $blockedPath)) 'The tool allowed an accidental save.'
+  $excel.EnableEvents = $false
+  Write-Output 'PASS: accidental tool save is blocked'; $passed++
+  $report = Invoke-InventoryCase $root '^csv$'
+  $toolName = $book.Name
+  try { $excel.Run($macroPrefix + 'InventoryCommon.CloseInventoryTool', $report) | Out-Null }
+  catch { $closeError = $_.Exception.Message }
+  $book = $null
+  Assert-Inventory (@($excel.Workbooks | Where-Object Name -eq $toolName).Count -eq 0) ("The execution workbook did not close: " + $closeError)
+  Assert-Inventory ($report.Worksheets.Item('ファイル一覧').Cells.Item(2, 2).Value2 -eq 'invoice.CSV') 'Closing the tool also closed or changed its report.'
+  $report.Close($false)
+  Write-Output 'PASS: execution workbook closes while result stays open'; $passed++
   Write-Output "Excel integration: $passed cases passed."
 } finally {
-  if ($book) { $book.Close($false) }
+  if ($book) { try { $book.Close($false) } catch {} }
   if ($excel) { $excel.Quit() }
   foreach ($item in @($book, $excel)) {
     if ($item -and [Runtime.InteropServices.Marshal]::IsComObject($item)) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($item) }

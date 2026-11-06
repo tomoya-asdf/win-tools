@@ -104,7 +104,11 @@ function Invoke-WinToolsMenuItem {
     'ExcelMacro' {
       $file = Get-Item -LiteralPath $Item.Path -Force -ErrorAction Stop
       if ($file.PSIsContainer -or $file.Extension.ToLowerInvariant() -notin @('.xlsm', '.xlsb', '.xlam', '.xltm')) { throw '対応するExcelマクロファイルを指定してください。' }
-      Start-Process -FilePath $file.FullName -ErrorAction Stop
+      if ($file.Extension -eq '.xltm') {
+        Start-Process -FilePath $file.FullName -Verb New -ErrorAction Stop
+      } else {
+        Start-Process -FilePath $file.FullName -ErrorAction Stop
+      }
     }
     default { throw "未対応のメニュー項目です: $($Item.Kind)" }
   }
